@@ -1,5 +1,44 @@
+import ErrorHandler from "../middlewares/error.js";
 import { Project } from "../models/project.js";
 
 export const getProjectByStudentId = async (studentId) => {
-  return await Project({ student: studentId }).sort({ createdAt: -1 });
+  return await Project.findOne({ student: studentId }).sort({ createdAt: -1 });
+};
+
+export const createProject = async (projectData) => {
+  const project = new Project(projectData);
+  await project.save();
+  return project;
+};
+
+export const getProjectById = async (id) => {
+  const project = await Project.findById(id)
+    .populate("student", "name email")
+    .populate("supervisor", "name email");
+
+  if (!project) {
+    throw new ErrorHandler("project not found", 404);
+  }
+
+  return project;
+};
+
+export const addFilesToProject = async (projectId, files) => {
+  const project = await Project.findById(projectId);
+
+  if (!project) {
+    throw new ErrorHandler("project not found", 404);
+  }
+
+  const fileMetaData = files.map((file) => ({
+    fileType: file.mimetype,
+    fileUrl: file.path,
+    originalName: file.originalName,
+    uploadAt: new Date(),
+  }));
+
+  project.files.push(...fileMetaData);
+  await project.save();
+  
+  return project;
 };
